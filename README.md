@@ -140,7 +140,7 @@ postgresql:
       databases: []   # empty = backup ALL databases separately
 ```
 
-### MySQL / MariaDB example
+### Microsoft SQL Server example
 ```yaml
 mssql:
   enabled: true
