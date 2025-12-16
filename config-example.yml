@@ -1,0 +1,75 @@
+backup:
+  retention: 10
+  output_dir: backups
+
+sqlite:
+  enabled: true
+  instances:
+    - name: appdb
+      path: "/data/app.sqlite"
+    - name: logs
+      path: "/data/logs.db"
+
+mysql:
+  enabled: true
+  instances:
+    # LOCAL DOCKER
+    - name: mysql_local
+      mode: docker
+      docker_container: mysql
+      user: backup
+      password: "secret"
+      databases: []   # empty = all databases
+
+    # TCP DOCKER
+    - name: mysql_remote
+      mode: tcp_docker
+      image: "mysql:8.0"
+      host: 192.168.1.50
+      port: 3306
+      user: backup
+      password: "secret"
+      databases: []   # empty = all databases
+
+    # TCP ON HOST
+    - name: mysql_remote
+      mode: tcp
+      host: 192.168.1.50
+      port: 3306
+      user: backup
+      password: "secret"
+      databases:
+        - appdb
+        - logdb
+
+postgresql:
+  enabled: true
+  instances:
+    # LOCAL DOCKER
+    - name: pg_local
+      mode: docker
+      docker_container: postgres
+      user: backup
+      password: "secret"
+      databases: []   # empty = all databases
+
+    # TCP DOCKER
+    - name: pg_remote
+      mode: tcp_docker
+      image: "postgres:16"
+      host: 10.0.0.20
+      port: 5432
+      user: backup
+      password: "secret"
+      databases: []   # empty = all databases
+
+    # REMOTE DOCKER (TCP)
+    - name: pg_remote
+      mode: tcp
+      host: 10.0.0.20
+      port: 5432
+      user: backup
+      password: "secret"
+      databases:
+        - appdb
+        - logdb
